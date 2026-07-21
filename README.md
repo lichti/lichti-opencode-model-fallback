@@ -59,9 +59,35 @@ which made the original bug almost impossible to diagnose.
 
 ## Install
 
-Add it to `opencode.json`'s `plugin` array (note: singular `"plugin"`,
-matching OpenCode's real config schema — some docs/READMEs in this
-ecosystem say `"plugins"`, which is wrong):
+Clone this repo somewhere stable (it stays in place — OpenCode loads it
+by path, it's not copied anywhere), then:
+
+```bash
+git clone https://github.com/lichti/lichti-opencode-model-fallback.git
+cd lichti-opencode-model-fallback
+make install
+```
+
+`make install`:
+
+1. Creates `~/.opencode/model-fallback.json` from
+   [`model-fallback.example.json`](model-fallback.example.json) if it
+   doesn't already exist (asks before overwriting if it does).
+2. Registers this plugin's absolute path in
+   `~/.config/opencode/opencode.json`'s `plugin` array — using real JSON
+   parsing (`scripts/register-plugin.py`), not a text substitution, so it
+   merges safely into whatever config you already have (other providers,
+   other plugins) instead of clobbering it. Idempotent: running it again
+   won't add a duplicate entry.
+
+Other targets: `make doctor` (checks it's registered and configured),
+`make status` (tails the plugin's log), `make uninstall` (removes the
+plugin entry from `opencode.json`; leaves `model-fallback.json` alone).
+
+**Manual install**, if you'd rather not run the Makefile: add the
+absolute path to `index.js` to `opencode.json`'s `plugin` array yourself
+(note: singular `"plugin"`, matching OpenCode's real config schema — some
+docs/READMEs in this ecosystem say `"plugins"`, which is wrong):
 
 ```json
 {
@@ -70,17 +96,15 @@ ecosystem say `"plugins"`, which is wrong):
 }
 ```
 
-OpenCode loads local plugin files by path — this isn't published to npm
-on purpose, since a Bun-managed npm install added no value here versus a
-plain file. Clone this repo somewhere stable and point `plugin` at
-`index.js` with an absolute path (a relative path resolves against
-whatever directory OpenCode happens to be launched from, which breaks the
-moment you use OpenCode in a different project).
+A relative path resolves against whatever directory OpenCode happens to
+be launched from, which breaks the moment you use OpenCode in a
+different project — always use an absolute path.
 
 ## Configure
 
-Create `~/.opencode/model-fallback.json` (or a `model-fallback.json` in
-the OpenCode project directory):
+`~/.opencode/model-fallback.json` (or a `model-fallback.json` in the
+OpenCode project directory) — `make install` scaffolds this from
+[`model-fallback.example.json`](model-fallback.example.json):
 
 ```json
 {
@@ -132,10 +156,9 @@ swallowed it, leaving the session stuck on the dead model B.
 
 ## Troubleshooting
 
-Tail the log:
-
 ```bash
-tail -f ~/.opencode/model-fallback-plugin.log
+make doctor   # is the plugin registered and configured?
+make status   # tail the plugin's log (same as: tail -f ~/.opencode/model-fallback-plugin.log)
 ```
 
 If a model in `fallbackModels` starts returning 410/404 consistently,

@@ -12,11 +12,20 @@ the production incident that motivated it.
 
 ## Important rules
 
-- **This file is the entire product.** Don't add a build step, a test
-  framework, or dependencies unless there's a concrete reason — the
-  whole point of rewriting this (vs. the third-party package it
-  replaced) was to keep it small enough to read end-to-end in one sitting
-  and to avoid a supply-chain surface.
+- **`index.js` is the entire product — keep it that way.** Don't add a
+  build step, a test framework, or npm dependencies to the plugin itself
+  unless there's a concrete reason — the whole point of rewriting this
+  (vs. the third-party package it replaced) was to keep it small enough
+  to read end-to-end in one sitting and to avoid a supply-chain surface.
+  The `Makefile`/`scripts/` installer tooling is a separate concern and
+  can use `python3` (stdlib only, no pip deps) freely.
+- **`opencode.json` is a user-owned file, not a template — never edit it
+  with `sed`/text substitution.** `scripts/register-plugin.py` uses real
+  JSON parsing to merge the plugin entry in, so it doesn't clobber other
+  providers/plugins/settings someone already has there. Any change to how
+  install/uninstall touches that file must go through real JSON
+  read-modify-write, and stay idempotent (installing twice must not
+  duplicate the entry).
 - **Detect failures by structured HTTP status code first, text second.**
   The bug this plugin exists to fix was a text-whitelist that didn't
   match a real provider's error body. Any new detection logic must check

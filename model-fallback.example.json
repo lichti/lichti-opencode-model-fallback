@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "cooldownMs": 60000,
+  "fallbackModels": [
+    { "providerID": "nvidia", "modelID": "z-ai/glm-5.2" },
+    { "providerID": "nvidia", "modelID": "deepseek-ai/deepseek-v4-pro" },
+    { "providerID": "nvidia", "modelID": "moonshotai/kimi-k2.6" }
+  ]
+}
