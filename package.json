@@ -1,0 +1,13 @@
+{
+  "name": "lichti-opencode-model-fallback",
+  "version": "1.0.0",
+  "description": "OpenCode plugin: automatic model fallback on 429 (rate limit) and 410 (model retired), detected by structured HTTP status code instead of a text whitelist.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lichti/lichti-opencode-model-fallback.git"
+  },
+  "keywords": ["opencode", "plugin", "rate-limit", "fallback", "model"]
+}
