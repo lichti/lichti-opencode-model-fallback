@@ -6,23 +6,43 @@ permanently retired by the provider (410) — instead of leaving the
 session stuck retrying (or silently dead) on a model that will never
 respond.
 
-## Why this exists
+## Why this was created
+
+This plugin exists because of a real production failure, not a
+hypothetical one. We were running [OpenCode](https://opencode.ai) against
+[NVIDIA Build](https://build.nvidia.com)'s hosted model catalog, which
+caps usage at 40 requests/minute **per model**. The fix seemed obvious:
+rotate across several models and let a plugin fail over automatically
+whenever one gets rate limited.
 
 We first used the third-party
 [`opencode-rate-limit`](https://www.npmjs.com/package/opencode-rate-limit)
-package. In production it never switched models. The root cause, found by
-reading its actual compiled source (not just its README): its
-`session.status` `"retry"` handler only recognizes messages containing
-`"usage limit"` / `"rate limit"` / `"high concurrency"` /
-`"reduce concurrency"`. A provider whose 429 body reads `"Too Many
-Requests"` (NVIDIA Build, for example) never matches that whitelist, so
-the plugin silently never intervened — while the underlying request kept
-retrying forever with exponential backoff, invisible to the user.
+package for that. In production it never switched models — the session
+just sat there retrying the same model forever. The root cause, found by
+reading its actual compiled source (not just its README, which itself
+turned out to document a config field name that doesn't match OpenCode's
+real schema): its `session.status` `"retry"` handler only recognizes
+messages containing `"usage limit"` / `"rate limit"` /
+`"high concurrency"` / `"reduce concurrency"`. NVIDIA Build's actual 429
+error body reads `"Too Many Requests"` — a string that never matches that
+hardcoded whitelist, so the plugin silently never intervened while the
+underlying request kept retrying forever with exponential backoff,
+invisible to the user. A follow-up incident made it worse: one of the
+fallback models reached end-of-life and started returning `410 Gone`,
+which isn't even a "retry" event in OpenCode's model — a text-matching
+plugin built only around retry messages had no chance of catching it at
+all.
 
-This plugin detects failures by the **structured HTTP status code**
-(`error.data.statusCode`) instead of matching free text, with broad text
-matching only as a fallback. It also distinguishes two failure classes
-that need very different handling:
+So this plugin was written from scratch to fix the actual failure mode:
+detect errors by their **structured HTTP status code**, not by matching
+free text against a curated phrase list, and treat "temporarily rate
+limited" and "permanently retired" as the genuinely different failure
+classes they are.
+
+## What it does
+
+Concretely, it distinguishes two failure classes that need very
+different handling:
 
 - **429 Too Many Requests** — retryable. The model cools down for
   `cooldownMs` and becomes eligible again afterwards.
